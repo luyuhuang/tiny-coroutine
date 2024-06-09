@@ -39,14 +39,14 @@ struct coroutine {
     char *stack;
     size_t stack_size;
     int status;
+    struct coroutine *prev;
     start_coroutine start;
     void *param;
     void *result;
 };
 
 struct co_env {
-    struct coroutine *stack[128];
-    size_t stack_top;
+    struct coroutine *curr;
 };
 
 

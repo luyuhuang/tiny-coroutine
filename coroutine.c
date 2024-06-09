@@ -44,8 +44,7 @@ static void co_ctx_make(struct coroutine *co) {
 
 static struct co_env *co_env_new() {
     struct co_env *env = malloc(sizeof(struct co_env));
-    env->stack[0] = co_new(NULL, 0);
-    env->stack_top = 1;
+    env->curr = co_new(NULL, 0);
     return env;
 }
 
@@ -71,8 +70,9 @@ int co_resume(struct coroutine *co, void *param, void **result) {
             return -1;
     }
 
-    struct coroutine *curr = g_co_env->stack[g_co_env->stack_top-1];
-    g_co_env->stack[g_co_env->stack_top++] = co;
+    struct coroutine *curr = g_co_env->curr;
+    g_co_env->curr = co;
+    co->prev = curr;
     co->param = param;
     co_swap(curr, co);
     *result = co->result;
@@ -85,13 +85,14 @@ int co_yield(void *result, void **param) {
         g_co_env = co_env_new();
     }
 
-    if (g_co_env->stack_top == 1) {
+    struct coroutine *curr = g_co_env->curr;
+    struct coroutine *prev = curr->prev;
+
+    if (!prev) {
         return -1;
     }
 
-    struct coroutine *curr = g_co_env->stack[--g_co_env->stack_top];
-    struct coroutine *prev = g_co_env->stack[g_co_env->stack_top-1];
-
+    g_co_env->curr = prev;
     curr->result = result;
     co_swap(curr, prev);
     *param = curr->param;
