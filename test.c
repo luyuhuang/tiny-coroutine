@@ -34,9 +34,9 @@ int main() {
 
     char *s;
     co_resume(co1, "orange", (void**)&s);
-    printf("co main1: %s. status=%d\n", s, co1->status);
+    printf("co main1: %s. status=%d\n", s, co_status(co1));
     co_resume(co, "banana", (void**)&s);
-    printf("co main2: %s. status=%d\n", s, co->status);
+    printf("co main2: %s. status=%d\n", s, co_status(co));
     co_free(co);
     return 0;
 }
