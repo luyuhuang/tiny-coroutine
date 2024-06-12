@@ -30,8 +30,7 @@ struct coroutine {
     int status;
     struct coroutine *prev;
     start_coroutine start;
-    void *param;
-    void *result;
+    void *data;
 };
 
 static __thread struct coroutine *g_curr_co = NULL;
@@ -49,7 +48,7 @@ struct coroutine *co_new(start_coroutine start, size_t stack_size) {
     co->status = CO_STATUS_INIT;
     co->prev = NULL;
     co->start = start;
-    co->param = co->result = NULL;
+    co->data = NULL;
 
     return co;
 }
@@ -64,7 +63,7 @@ int co_status(struct coroutine *co) {
 }
 
 static void co_entrance(struct coroutine *co) {
-    void *result = co->start(co->param);
+    void *result = co->start(co->data);
     co->status = CO_STATUS_DEAD;
     co_yield(result, NULL);
     // never run here
@@ -105,12 +104,12 @@ int co_resume(struct coroutine *next, void *param, void **result) {
     struct coroutine *curr = g_curr_co;
     g_curr_co = next;
     next->prev = curr;
-    next->param = param;
+    next->data = param;
     curr->status = CO_STATUS_NORMAL;
     next->status = CO_STATUS_RUNNING;
     co_ctx_swap(&curr->ctx, &next->ctx);
     if (result) {
-        *result = next->result;
+        *result = curr->data;
     }
 
     return 0;
@@ -127,14 +126,14 @@ int co_yield(void *result, void **param) {
     }
 
     g_curr_co = prev;
-    curr->result = result;
+    prev->data = result;
     if (curr->status != CO_STATUS_DEAD) {
         curr->status = CO_STATUS_PENDING;
     }
     prev->status = CO_STATUS_RUNNING;
     co_ctx_swap(&curr->ctx, &prev->ctx);
     if (param) {
-        *param = curr->param;
+        *param = curr->data;
     }
 
     return 0;
